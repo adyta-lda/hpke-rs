@@ -27,6 +27,11 @@ use p384::{
     SecretKey as p384SecretKey,
 };
 
+use p521::{
+    elliptic_curve::ecdh::diffie_hellman as p521diffie_hellman, PublicKey as p521PublicKey,
+    SecretKey as p521SecretKey,
+};
+
 use rand_core::SeedableRng;
 use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret as X25519StaticSecret};
 
@@ -124,6 +129,15 @@ impl HpkeCrypto for HpkeRustCrypto {
                     .as_slice()
                     .into())
             }
+            KemAlgorithm::DhKemP521 => {
+                let sk = p521SecretKey::from_slice(sk).map_err(|_| Error::KemInvalidSecretKey)?;
+                let pk =
+                    p521PublicKey::from_sec1_bytes(pk).map_err(|_| Error::KemInvalidPublicKey)?;
+                Ok(p521diffie_hellman(sk.to_nonzero_scalar(), pk.as_affine())
+                    .raw_secret_bytes()
+                    .as_slice()
+                    .into())
+            }
             KemAlgorithm::DhKemK256 => {
                 let sk = k256SecretKey::from_slice(sk).map_err(|_| Error::KemInvalidSecretKey)?;
                 let pk =
@@ -187,6 +201,10 @@ impl HpkeCrypto for HpkeRustCrypto {
                 let sk = p384SecretKey::from_slice(sk).map_err(|_| Error::KemInvalidSecretKey)?;
                 Ok(sk.public_key().to_encoded_point(false).as_bytes().into())
             }
+            KemAlgorithm::DhKemP521 => {
+                let sk = p521SecretKey::from_slice(sk).map_err(|_| Error::KemInvalidSecretKey)?;
+                Ok(sk.public_key().to_encoded_point(false).as_bytes().into())
+            }
             KemAlgorithm::DhKemK256 => {
                 let sk = k256SecretKey::from_slice(sk).map_err(|_| Error::KemInvalidSecretKey)?;
                 Ok(sk.public_key().to_encoded_point(false).as_bytes().into())
@@ -221,6 +239,13 @@ impl HpkeCrypto for HpkeRustCrypto {
                 let sk = sk.to_bytes().as_slice().into();
                 Ok((pk, sk))
             }
+            KemAlgorithm::DhKemP521 => {
+                let rng = &mut prng.rng;
+                let sk = p521SecretKey::random(&mut *rng);
+                let pk = sk.public_key().to_encoded_point(false).as_bytes().into();
+                let sk = sk.to_bytes().as_slice().into();
+                Ok((pk, sk))
+            }
             KemAlgorithm::DhKemK256 => {
                 let rng = &mut prng.rng;
                 let sk = k256SecretKey::random(&mut *rng);
@@ -246,6 +271,9 @@ impl HpkeCrypto for HpkeRustCrypto {
                 .map_err(|_| Error::KemInvalidSecretKey)
                 .map(|_| sk.into()),
             KemAlgorithm::DhKemP384 => p384SecretKey::from_slice(sk)
+                .map_err(|_| Error::KemInvalidSecretKey)
+                .map(|_| sk.into()),
+            KemAlgorithm::DhKemP521 => p521SecretKey::from_slice(sk)
                 .map_err(|_| Error::KemInvalidSecretKey)
                 .map(|_| sk.into()),
             KemAlgorithm::DhKemK256 => k256SecretKey::from_slice(sk)
@@ -314,7 +342,8 @@ impl HpkeCrypto for HpkeRustCrypto {
             KemAlgorithm::DhKem25519
             | KemAlgorithm::DhKemP256
             | KemAlgorithm::DhKemK256
-            | KemAlgorithm::DhKemP384 => Ok(()),
+            | KemAlgorithm::DhKemP384
+            | KemAlgorithm::DhKemP521 => Ok(()),
             // XXX: These are broken and pre-releases. Disabling them until they are stable.
             #[cfg(feature = "experimental")]
             KemAlgorithm::XWingDraft06 | KemAlgorithm::MlKem768 | KemAlgorithm::MlKem1024 => Ok(()),

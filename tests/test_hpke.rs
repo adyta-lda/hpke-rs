@@ -1697,6 +1697,81 @@ generate_test_case!(
     HpkeRustCrypto
 );
 
+// P521 based test cases
+
+generate_test_case!(
+    base_dhkempp521_hkdfsha256_Aes128Gcm,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha256,
+    AeadAlgorithm::Aes128Gcm,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha384_Aes128Gcm,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha384,
+    AeadAlgorithm::Aes128Gcm,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha512_Aes128Gcm,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha512,
+    AeadAlgorithm::Aes128Gcm,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha256_Aes256Gcm,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha256,
+    AeadAlgorithm::Aes256Gcm,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha384_Aes256Gcm,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha384,
+    AeadAlgorithm::Aes256Gcm,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha512_Aes256Gcm,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha512,
+    AeadAlgorithm::Aes256Gcm,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha256_chacha20poly1305,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha256,
+    AeadAlgorithm::ChaCha20Poly1305,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha384_chacha20poly1305,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha384,
+    AeadAlgorithm::ChaCha20Poly1305,
+    HpkeRustCrypto
+);
+generate_test_case!(
+    base_dhkemp521_hkdfsha512_chacha20poly1305,
+    HpkeMode::Base,
+    KemAlgorithm::DhKemP521,
+    KdfAlgorithm::HkdfSha512,
+    AeadAlgorithm::ChaCha20Poly1305,
+    HpkeRustCrypto
+);
+
 // ML-KEM based test cases
 
 #[cfg(feature = "experimental")]
