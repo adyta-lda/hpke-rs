@@ -1,3 +1,0 @@
-# enable custom backend for getrandom
-[target.thumbv7em-none-eabihf]
-rustflags = ['--cfg', 'getrandom_backend="custom"']

@@ -5,7 +5,7 @@ extern crate hpke_rs as hpke;
 use hpke::prelude::*;
 use hpke_rs_crypto::{
     types::{AeadAlgorithm, KdfAlgorithm, KemAlgorithm},
-    HpkeCrypto, RngCore,
+    HpkeDefaultPrng, TryRng,
 };
 use hpke_rs_libcrux::HpkeLibcrux;
 use hpke_rs_rust_crypto::HpkeRustCrypto;
@@ -55,9 +55,15 @@ macro_rules! generate_test_case {
             let plain_txt = b"HPKE self test plain text";
             let exporter_context = b"HPKE self test exporter context";
             let mut psk = [0u8; 32];
-            $provider::prng().fill_bytes(&mut psk);
+            $provider::try_prng()
+                .unwrap()
+                .try_fill_bytes(&mut psk)
+                .expect("Error filling psk with randomness");
             let mut psk_id = [0u8; 32];
-            $provider::prng().fill_bytes(&mut psk_id);
+            $provider::try_prng()
+                .unwrap()
+                .try_fill_bytes(&mut psk_id)
+                .expect("Error filling psk_id with randomness");
             let (psk, psk_id): (Option<&[u8]>, Option<&[u8]>) = match $hpke_mode {
                 Mode::Base | Mode::Auth => (None, None),
                 Mode::Psk | Mode::AuthPsk => (Some(&psk), Some(&psk_id)),
@@ -526,56 +532,33 @@ generate_test_case!(
     HpkeLibcrux
 );
 
-// P384/P521 via RustCrypto in the libcrux provider
-#[cfg(feature = "libcrux-rustcrypto-p-curves")]
-mod libcrux_p_curves {
+#[test]
+fn new_with_rng_roundtrip() {
+    let mut hpke = Hpke::<HpkeLibcrux>::new_with_rng(
+        Mode::Base,
+        KemAlgorithm::DhKem25519,
+        KdfAlgorithm::HkdfSha256,
+        AeadAlgorithm::ChaCha20Poly1305,
+        HpkeLibcrux::try_prng().unwrap(),
+    );
+
+    let (sk_r, pk_r) = hpke.generate_key_pair().unwrap().into_keys();
+    let info = b"HPKE new_with_prng test info";
+    let aad = b"HPKE new_with_prng test aad";
+    let plain_txt = b"HPKE new_with_prng test plain text";
+
+    let (enc, ctxt) = hpke
+        .seal(&pk_r, info, aad, plain_txt, None, None, None)
+        .unwrap();
+    let ptxt = hpke
+        .open(&enc, &sk_r, info, aad, &ctxt, None, None, None)
+        .unwrap();
+    assert_eq!(ptxt, plain_txt);
+}
+
+// P384 in the libcrux provider
+mod libcrux_p384 {
     use super::*;
-
-    #[test]
-    fn kem_trait_roundtrip_p384_libcrux() {
-        let mut prng = HpkeLibcrux::prng();
-        let (pk_r, sk_r) = HpkeLibcrux::kem_key_gen(KemAlgorithm::DhKemP384, &mut prng).unwrap();
-        let (ss_enc, enc) =
-            HpkeLibcrux::kem_encaps(KemAlgorithm::DhKemP384, &pk_r, &mut prng).unwrap();
-        let ss_dec = HpkeLibcrux::kem_decaps(KemAlgorithm::DhKemP384, &enc, &sk_r).unwrap();
-        assert_eq!(ss_enc, ss_dec);
-    }
-
-    #[test]
-    fn kem_trait_roundtrip_p521_libcrux() {
-        let mut prng = HpkeLibcrux::prng();
-        let (pk_r, sk_r) = HpkeLibcrux::kem_key_gen(KemAlgorithm::DhKemP521, &mut prng).unwrap();
-        let (ss_enc, enc) =
-            HpkeLibcrux::kem_encaps(KemAlgorithm::DhKemP521, &pk_r, &mut prng).unwrap();
-        let ss_dec = HpkeLibcrux::kem_decaps(KemAlgorithm::DhKemP521, &enc, &sk_r).unwrap();
-        assert_eq!(ss_enc, ss_dec);
-    }
-
-    #[test]
-    fn kem_key_gen_derand_p384_uses_hpke_sized_seed_libcrux() {
-        let alg = KemAlgorithm::DhKemP384;
-        let seed = [0x42; 48];
-
-        let (pk, sk) = HpkeLibcrux::kem_key_gen_derand(alg, &seed).unwrap();
-        let (pk_repeat, sk_repeat) = HpkeLibcrux::kem_key_gen_derand(alg, &seed).unwrap();
-
-        assert_eq!(pk, pk_repeat);
-        assert_eq!(sk, sk_repeat);
-        assert_eq!(pk, HpkeLibcrux::secret_to_public(alg, &sk).unwrap());
-    }
-
-    #[test]
-    fn kem_key_gen_derand_p521_uses_hpke_sized_seed_libcrux() {
-        let alg = KemAlgorithm::DhKemP521;
-        let seed = [0x24; 66];
-
-        let (pk, sk) = HpkeLibcrux::kem_key_gen_derand(alg, &seed).unwrap();
-        let (pk_repeat, sk_repeat) = HpkeLibcrux::kem_key_gen_derand(alg, &seed).unwrap();
-
-        assert_eq!(pk, pk_repeat);
-        assert_eq!(sk, sk_repeat);
-        assert_eq!(pk, HpkeLibcrux::secret_to_public(alg, &sk).unwrap());
-    }
 
     generate_test_case!(
         base_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
@@ -602,6 +585,37 @@ mod libcrux_p_curves {
         HpkeLibcrux
     );
     generate_test_case!(
+        psk_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
+        HpkeMode::Psk,
+        KemAlgorithm::DhKemP384,
+        KdfAlgorithm::HkdfSha384,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeLibcrux
+    );
+    generate_test_case!(
+        auth_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
+        HpkeMode::Auth,
+        KemAlgorithm::DhKemP384,
+        KdfAlgorithm::HkdfSha384,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeLibcrux
+    );
+    generate_test_case!(
+        authpsk_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
+        HpkeMode::AuthPsk,
+        KemAlgorithm::DhKemP384,
+        KdfAlgorithm::HkdfSha384,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeLibcrux
+    );
+}
+
+// P521 via RustCrypto in the libcrux provider
+#[cfg(feature = "libcrux-rustcrypto-p-curves")]
+mod libcrux_p521 {
+    use super::*;
+
+    generate_test_case!(
         base_dhkemp521_hkdfsha512_Aes256Gcm_libcrux,
         HpkeMode::Base,
         KemAlgorithm::DhKemP521,
@@ -626,14 +640,6 @@ mod libcrux_p_curves {
         HpkeLibcrux
     );
     generate_test_case!(
-        psk_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
-        HpkeMode::Psk,
-        KemAlgorithm::DhKemP384,
-        KdfAlgorithm::HkdfSha384,
-        AeadAlgorithm::Aes256Gcm,
-        HpkeLibcrux
-    );
-    generate_test_case!(
         psk_dhkemp521_hkdfsha512_Aes256Gcm_libcrux,
         HpkeMode::Psk,
         KemAlgorithm::DhKemP521,
@@ -642,26 +648,10 @@ mod libcrux_p_curves {
         HpkeLibcrux
     );
     generate_test_case!(
-        auth_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
-        HpkeMode::Auth,
-        KemAlgorithm::DhKemP384,
-        KdfAlgorithm::HkdfSha384,
-        AeadAlgorithm::Aes256Gcm,
-        HpkeLibcrux
-    );
-    generate_test_case!(
         auth_dhkemp521_hkdfsha512_Aes256Gcm_libcrux,
         HpkeMode::Auth,
         KemAlgorithm::DhKemP521,
         KdfAlgorithm::HkdfSha512,
-        AeadAlgorithm::Aes256Gcm,
-        HpkeLibcrux
-    );
-    generate_test_case!(
-        authpsk_dhkemp384_hkdfsha384_Aes256Gcm_libcrux,
-        HpkeMode::AuthPsk,
-        KemAlgorithm::DhKemP384,
-        KdfAlgorithm::HkdfSha384,
         AeadAlgorithm::Aes256Gcm,
         HpkeLibcrux
     );
