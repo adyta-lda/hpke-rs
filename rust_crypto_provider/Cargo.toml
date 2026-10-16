@@ -27,6 +27,10 @@ p384 = { version = "0.14", default-features = false, features = [
     "arithmetic",
     "ecdh",
 ] }
+p521 = { version = "0.14", default-features = false, features = [
+    "arithmetic",
+    "ecdh",
+] }
 x25519-dalek = { version = "3", features = ["static_secrets"] }
 chacha20poly1305 = { version = "0.11", default-features = false, features = [
     "alloc",

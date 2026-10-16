@@ -664,6 +664,60 @@ mod libcrux_p521 {
         HpkeLibcrux
     );
 }
+
+// P521 in the RustCrypto provider
+mod rust_crypto_p521 {
+    use super::*;
+
+    generate_test_case!(
+        base_dhkemp521_hkdfsha512_Aes256Gcm_rust_crypto,
+        HpkeMode::Base,
+        KemAlgorithm::DhKemP521,
+        KdfAlgorithm::HkdfSha512,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeRustCrypto
+    );
+    generate_test_case!(
+        base_dhkemp521_hkdfsha512_Aes128Gcm_rust_crypto,
+        HpkeMode::Base,
+        KemAlgorithm::DhKemP521,
+        KdfAlgorithm::HkdfSha512,
+        AeadAlgorithm::Aes128Gcm,
+        HpkeRustCrypto
+    );
+    generate_test_case!(
+        base_dhkemp521_hkdfsha512_chacha20poly1305_rust_crypto,
+        HpkeMode::Base,
+        KemAlgorithm::DhKemP521,
+        KdfAlgorithm::HkdfSha512,
+        AeadAlgorithm::ChaCha20Poly1305,
+        HpkeRustCrypto
+    );
+    generate_test_case!(
+        psk_dhkemp521_hkdfsha512_Aes256Gcm_rust_crypto,
+        HpkeMode::Psk,
+        KemAlgorithm::DhKemP521,
+        KdfAlgorithm::HkdfSha512,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeRustCrypto
+    );
+    generate_test_case!(
+        auth_dhkemp521_hkdfsha512_Aes256Gcm_rust_crypto,
+        HpkeMode::Auth,
+        KemAlgorithm::DhKemP521,
+        KdfAlgorithm::HkdfSha512,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeRustCrypto
+    );
+    generate_test_case!(
+        authpsk_dhkemp521_hkdfsha512_Aes256Gcm_rust_crypto,
+        HpkeMode::AuthPsk,
+        KemAlgorithm::DhKemP521,
+        KdfAlgorithm::HkdfSha512,
+        AeadAlgorithm::Aes256Gcm,
+        HpkeRustCrypto
+    );
+}
 #[cfg(feature = "draft-connolly-cfrg-hpke-mlkem")]
 mod mlkem_libcrux {
     use super::*;

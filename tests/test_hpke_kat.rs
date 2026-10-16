@@ -414,6 +414,7 @@ fn kats_rust_crypto() {
         KemAlgorithm::DhKem25519,
         KemAlgorithm::DhKemP256,
         KemAlgorithm::DhKemP384,
+        KemAlgorithm::DhKemP521,
         KemAlgorithm::DhKemK256,
     ];
 
